@@ -63,6 +63,20 @@
   }
 }
 
+/* 主题切换平滑过渡 */
+.nav-home,
+.nav-home *,
+.nav-home *::before,
+.nav-home *::after {
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+/* 排除图片、图标等不需要过渡的元素 */
+.nav-home img,
+.nav-home svg {
+  transition: none;
+}
+
 *,
 *::before,
 *::after {

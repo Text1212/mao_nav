@@ -18,12 +18,12 @@ export function useNavigation() {
         await new Promise(resolve => setTimeout(resolve, 500))
       }
 
-      // 默认使用本地mock数据
-      categories.value = mockData.categories
+      // 默认使用本地mock数据（过滤掉省钱小助手）
+      categories.value = mockData.categories.filter(c => c.name !== '省钱小助手')
       title.value = mockData.title
 
       // 设置默认搜索引擎，如果未指定或不存在则使用bing
-      const searchEngines = ['google', 'baidu', 'bing', 'duckduckgo']
+      const searchEngines = ['google', 'baidu', 'bing', 'duckduckgo', 'site']
       if (mockData.search && searchEngines.includes(mockData.search)) {
         defaultSearchEngine.value = mockData.search
       } else {
@@ -37,12 +37,12 @@ export function useNavigation() {
     } catch (err) {
       error.value = err.message
       console.error('Error fetching categories:', err)
-      // 兜底：始终返回 mock 数据
-      categories.value = mockData.categories
+      // 兜底：始终返回 mock 数据（过滤掉省钱小助手）
+      categories.value = mockData.categories.filter(c => c.name !== '省钱小助手')
       title.value = mockData.title
 
       // 设置默认搜索引擎
-      const searchEngines = ['google', 'baidu', 'bing', 'duckduckgo']
+      const searchEngines = ['google', 'baidu', 'bing', 'duckduckgo', 'site']
       if (mockData.search && searchEngines.includes(mockData.search)) {
         defaultSearchEngine.value = mockData.search
       } else {
