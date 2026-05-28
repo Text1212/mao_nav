@@ -195,7 +195,7 @@
                     class="site-card"
                   >
                     <div class="site-icon">
-                      <img :src="site.icon" :alt="site.name" @error="handleImageError" />
+                      <img :src="site.icon" :alt="site.name" loading="lazy" decoding="async" @error="handleImageError" />
                     </div>
                     <div class="site-info">
                       <h3 class="site-name">{{ site.name }}</h3>
@@ -473,9 +473,8 @@ const handleSearch = () => {
 
 // 处理图片加载错误
 const handleImageError = (event) => {
-  // 设置默认的 favicon.ico 作为 fallback 图片
   event.target.src = '/favicon.ico'
-  event.target.onerror = null // 防止无限循环
+  event.target.onerror = null
 }
 
 // 移动端菜单控制
