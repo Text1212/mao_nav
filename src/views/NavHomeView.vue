@@ -52,21 +52,6 @@
         </ul>
       </nav>
 
-      <!-- 左侧边栏底部信息 -->
-      <div class="sidebar-footer">
-        <a
-          href="https://github.com/maodeyu180/mao_nav"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="github-link"
-          title="查看源代码"
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-          </svg>
-          <span>开源不易，Star一下吧！⭐</span>
-        </a>
-      </div>
     </aside>
 
     <!-- 右侧主内容区 -->
@@ -74,14 +59,33 @@
                   <!-- 顶部搜索栏 -->
       <header class="search-header">
         <div class="search-container">
-          <div class="search-engine-selector">
-            <img :src="searchEngines[selectedEngine].icon" :alt="selectedEngine" class="engine-logo" />
-            <select v-model="selectedEngine" class="engine-select">
-              <option value="google">Google</option>
-              <option value="baidu">Baidu</option>
-              <option value="bing">Bing</option>
-              <option value="duckduckgo">DuckDuckGo</option>
-            </select>
+          <div class="search-engine-selector" @click="toggleEngineDropdown" ref="engineSelectorRef">
+            <svg v-if="selectedEngine === 'site'" class="engine-logo site-search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="8"/>
+              <path d="M21 21l-4.35-4.35"/>
+            </svg>
+            <img v-else :src="searchEngines[selectedEngine].icon" :alt="selectedEngine" class="engine-logo" />
+            <svg class="engine-chevron" :class="{ open: showEngineDropdown }" width="10" height="6" viewBox="0 0 10 6" fill="none">
+              <path d="M1 1L5 5L9 1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <Transition name="dropdown">
+              <div v-if="showEngineDropdown" class="engine-dropdown">
+                <div
+                  v-for="(engine, key) in searchEngines"
+                  :key="key"
+                  class="engine-dropdown-item"
+                  :class="{ active: selectedEngine === key }"
+                  @click.stop="selectEngine(key)"
+                >
+                  <svg v-if="key === 'site'" class="engine-dropdown-icon site-search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                  </svg>
+                  <img v-else :src="engine.icon" :alt="key" class="engine-dropdown-icon" />
+                  <span>{{ engineNames[key] }}</span>
+                </div>
+              </div>
+            </Transition>
           </div>
           <input
             type="text"
@@ -114,7 +118,6 @@
           <div class="mobile-menu-header">
             <div class="header-left">
               <h3>分类导航</h3>
-              <img :src="githubLogo" alt="GitHub" class="header-github-icon" @click="openGitHub" />
             </div>
             <button class="close-btn" @click="closeMobileMenu">×</button>
           </div>
@@ -156,30 +159,52 @@
             :key="category.id"
             class="category-section"
             :id="`category-${category.id}`"
+            v-show="isCategoryVisible(category)"
           >
-            <h2 class="category-title">
-              <span class="category-icon">{{ category.icon }}</span>
-              <span class="category-name">{{ category.name }}</span>
-            </h2>
+            <div class="category-header">
+              <h2 class="category-title">
+                <span class="category-icon">{{ category.icon }}</span>
+                <span class="category-name">{{ category.name }}</span>
+              </h2>
 
-            <div class="sites-grid">
-              <a
-                v-for="site in category.sites"
-                :key="site.id"
-                :href="site.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="site-card"
-              >
-                <div class="site-icon">
-                  <img :src="site.icon" :alt="site.name" @error="handleImageError" />
-                </div>
-                <div class="site-info">
-                  <h3 class="site-name">{{ site.name }}</h3>
-                  <p class="site-description">{{ site.description }}</p>
-                </div>
-              </a>
+              <!-- 分组Tab栏 -->
+              <div v-if="category.groups && category.groups.length > 1" class="sub-tabs">
+                <button
+                  v-for="group in category.groups"
+                  :key="group.name"
+                  class="sub-tab-btn"
+                  :class="{ active: (activeTabs[category.id] || category.groups[0].name) === group.name }"
+                  @click="setActiveTab(category.id, group.name)"
+                >
+                  {{ group.name }}
+                  <span class="sub-tab-count">{{ group.sites.length }}</span>
+                </button>
+              </div>
             </div>
+
+            <Transition :name="'tab-fade'" mode="out-in">
+              <div class="sites-grid" :key="category.id + '-' + (activeTabs[category.id] || (category.groups && category.groups[0] && category.groups[0].name) || 'all')">
+                <LazyCard
+                  v-for="site in getActiveSites(category)"
+                  :key="site.id"
+                >
+                  <a
+                    :href="site.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="site-card"
+                  >
+                    <div class="site-icon">
+                      <img :src="site.icon" :alt="site.name" @error="handleImageError" />
+                    </div>
+                    <div class="site-info">
+                      <h3 class="site-name">{{ site.name }}</h3>
+                      <p class="site-description">{{ site.description }}</p>
+                    </div>
+                  </a>
+                </LazyCard>
+              </div>
+            </Transition>
           </section>
 
           <!-- 页面底部信息 -->
@@ -217,16 +242,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { useNavigation } from '@/apis/useNavigation.js'
 import { useThemeStore } from '@/stores/counter.js'
+import LazyCard from '@/components/LazyCard.vue'
 // 导入搜索引擎logo图片
 import googleLogo from '@/assets/goolge.png'
 import baiduLogo from '@/assets/baidu.png'
 import bingLogo from '@/assets/bing.png'
 import duckLogo from '@/assets/duck.png'
-// 导入GitHub logo
-import githubLogo from '@/assets/github.png'
 
 // 使用导航API
 const { categories, title, defaultSearchEngine, loading, error, fetchCategories } = useNavigation()
@@ -236,8 +260,69 @@ const themeStore = useThemeStore()
 
 // 响应式数据
 const searchQuery = ref('') // 搜索查询
-const selectedEngine = ref('bing') // 选中的搜索引擎，初始值会在组件挂载后更新
+const selectedEngine = ref('site') // 选中搜索引擎，默认站内搜索
 const showMobileMenu = ref(false) // 移动端菜单显示状态
+const showEngineDropdown = ref(false) // 搜索引擎下拉菜单
+const engineSelectorRef = ref(null) // 搜索引擎选择器DOM引用
+const activeTabs = reactive({}) // 每个分类当前激活的tab: { categoryId: groupName }
+
+// 获取分类当前激活tab的站点列表
+const getActiveSites = (category) => {
+  let sites
+  if (category.groups && category.groups.length > 0) {
+    const activeName = activeTabs[category.id]
+    if (activeName) {
+      const activeGroup = category.groups.find(g => g.name === activeName)
+      sites = activeGroup ? activeGroup.sites : category.groups[0].sites
+    } else {
+      sites = category.groups[0].sites
+    }
+  } else {
+    sites = category.sites
+  }
+
+  // 站内搜索过滤
+  if (selectedEngine.value === 'site' && searchQuery.value.trim()) {
+    const query = searchQuery.value.trim().toLowerCase()
+    return sites.filter(s =>
+      s.name.toLowerCase().includes(query) ||
+      s.description.toLowerCase().includes(query)
+    )
+  }
+
+  return sites
+}
+
+// 站内搜索时是否显示该分类（有匹配结果才显示）
+const isCategoryVisible = (category) => {
+  if (selectedEngine.value !== 'site' || !searchQuery.value.trim()) return true
+  return getActiveSites(category).length > 0
+}
+
+// 初始化或切换分组tab
+const setActiveTab = (categoryId, groupName) => {
+  activeTabs[categoryId] = groupName
+}
+
+// 搜索引擎名称映射
+const engineNames = {
+  google: 'Google',
+  baidu: 'Baidu',
+  bing: 'Bing',
+  duckduckgo: 'DuckDuckGo',
+  site: '站内搜索'
+}
+
+// 切换搜索引擎下拉菜单
+const toggleEngineDropdown = () => {
+  showEngineDropdown.value = !showEngineDropdown.value
+}
+
+// 选择搜索引擎
+const selectEngine = (key) => {
+  selectedEngine.value = key
+  showEngineDropdown.value = false
+}
 
 // 锁定功能相关
 const isLocked = ref(false) // 是否启用锁定功能
@@ -267,6 +352,11 @@ const searchEngines = {
     url: 'https://duckduckgo.com/?q=',
     icon: duckLogo,
     placeholder: 'DuckDuckGo (点logo切换搜索引擎)'
+  },
+  site: {
+    url: '',
+    icon: null,
+    placeholder: '输入关键词筛选站内卡片...'
   }
 }
 
@@ -373,6 +463,9 @@ const handleUnlock = async () => {
 const handleSearch = () => {
   if (!searchQuery.value.trim()) return
 
+  // 站内搜索实时过滤，不需要跳转
+  if (selectedEngine.value === 'site') return
+
   const engine = searchEngines[selectedEngine.value]
   const url = engine.url + encodeURIComponent(searchQuery.value)
   window.open(url, '_blank')
@@ -412,23 +505,27 @@ const scrollToCategoryMobile = (categoryId) => {
   }, 200)
 }
 
-// 打开GitHub项目页面
-const openGitHub = () => {
-  window.open('https://github.com/maodeyu180/mao_nav', '_blank')
+// 组件挂载时获取数据
+// 点击外部关闭搜索引擎下拉
+const handleClickOutside = (e) => {
+  if (engineSelectorRef.value && !engineSelectorRef.value.contains(e.target)) {
+    showEngineDropdown.value = false
+  }
 }
 
-// 组件挂载时获取数据
 onMounted(async () => {
   checkLockStatus() // 检查锁定状态
   await fetchCategories()
   // 设置默认搜索引擎
   selectedEngine.value = defaultSearchEngine.value
+  document.addEventListener('click', handleClickOutside)
 })
 
 // 组件卸载时清理样式
 onUnmounted(() => {
   // 确保卸载时恢复body滚动
   document.body.style.overflow = ''
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -543,7 +640,7 @@ onUnmounted(() => {
 
 /* 左侧边栏样式 */
 .sidebar {
-  width: 280px;
+  width: 220px;
   background-color: #2c3e50;
   color: white;
   padding: 0;
@@ -563,14 +660,14 @@ onUnmounted(() => {
 }
 
 .logo {
-  width: 55px;
-  height: 55px;
-  border-radius: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
   margin-right: 15px;
 }
 
 .site-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 600;
   margin: 0;
   color: white;
@@ -683,7 +780,7 @@ onUnmounted(() => {
   margin: 0 auto;
   gap: 0;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   flex: 1;
 }
@@ -701,6 +798,7 @@ onUnmounted(() => {
   align-items: center;
   background: #f8f9fa;
   border-right: 1px solid #e9ecef;
+  border-radius: 8px 0 0 8px;
   transition: background-color 0.2s ease;
 }
 
@@ -717,17 +815,68 @@ onUnmounted(() => {
   border-radius: 4px;
 }
 
-.engine-select {
+.engine-chevron {
+  margin-right: 8px;
+  color: #6b7280;
+  transition: transform 0.2s ease;
+}
+
+.engine-chevron.open {
+  transform: rotate(180deg);
+}
+
+.engine-dropdown {
   position: absolute;
-  top: 0;
+  top: calc(100% + 6px);
   left: 0;
-  width: 100%;
-  height: 100%;
-  opacity: 0;
+  min-width: 180px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+  padding: 6px;
+  z-index: 100;
+}
+
+.engine-dropdown-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: 7px;
   cursor: pointer;
-  border: none;
-  outline: none;
-  background: transparent;
+  transition: background 0.15s ease;
+  font-size: 14px;
+  color: #374151;
+}
+
+.engine-dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.engine-dropdown-item.active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+.engine-dropdown-icon {
+  width: 20px;
+  height: 20px;
+  margin-right: 10px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+/* dropdown 过渡动画 */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-4px);
 }
 
 .search-input {
@@ -737,6 +886,7 @@ onUnmounted(() => {
   font-size: 16px;
   outline: none;
   background: white;
+  border-radius: 0 8px 8px 0;
 }
 
 .search-input::placeholder {
@@ -935,7 +1085,7 @@ onUnmounted(() => {
 }
 
 .categories-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -943,13 +1093,22 @@ onUnmounted(() => {
   margin-bottom: 50px;
 }
 
+.category-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
 .category-title {
   font-size: 32px;
   font-weight: 600;
-  margin-bottom: 25px;
+  margin: 0;
   color: #2c3e50;
   display: flex;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .category-title .category-icon {
@@ -962,10 +1121,92 @@ onUnmounted(() => {
   font-size: 26px;
 }
 
+/* 分组Tab栏 */
+.sub-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.sub-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  background: #f9fafb;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.sub-tab-btn:hover {
+  background: #f3f4f6;
+  color: #374151;
+  border-color: #d1d5db;
+}
+
+.sub-tab-btn.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+  font-weight: 500;
+}
+
+.sub-tab-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.25);
+  font-size: 11px;
+  line-height: 1;
+}
+
+.sub-tab-btn:not(.active) .sub-tab-count {
+  background: #e5e7eb;
+  color: #9ca3af;
+}
+
+.sub-tab-btn:hover:not(.active) .sub-tab-count {
+  background: #d1d5db;
+  color: #6b7280;
+}
+
 .sites-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 20px;
+}
+
+/* 大屏幕5列 */
+@media (min-width: 1600px) {
+  .sites-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
+}
+
+/* tab切换动画 */
+.tab-fade-enter-active,
+.tab-fade-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.tab-fade-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.tab-fade-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
 }
 
 .site-card {
@@ -1034,10 +1275,13 @@ onUnmounted(() => {
 }
 
 .site-name {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 600;
   margin: 0 0 5px 0;
   color: #2c3e50;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .site-description {
@@ -1045,6 +1289,9 @@ onUnmounted(() => {
   color: #7f8c8d;
   margin: 0;
   line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1205,17 +1452,28 @@ onUnmounted(() => {
     text-align: center;
   }
 
+  .site-card .site-info {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
   .site-card .site-icon {
     margin-right: 0;
     margin-bottom: 8px;
   }
 
   .site-card .site-name {
-    font-size: 15px;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .site-card .site-description {
     font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .category-title {
@@ -1331,14 +1589,27 @@ onUnmounted(() => {
   color: #9ca3af;
 }
 
-.dark .engine-select {
+.dark .engine-chevron {
+  color: #9ca3af;
+}
+
+.dark .engine-dropdown {
   background: #374151;
+  border-color: #4b5563;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.dark .engine-dropdown-item {
   color: #e2e8f0;
 }
 
-.dark .engine-select option {
-  background: #374151;
-  color: #e2e8f0;
+.dark .engine-dropdown-item:hover {
+  background: #4b5563;
+}
+
+.dark .engine-dropdown-item.active {
+  background: #1e3a5f;
+  color: #60a5fa;
 }
 
 .dark .content-area {
@@ -1373,6 +1644,29 @@ onUnmounted(() => {
 
 .dark .category-title {
   color: #e2e8f0;
+}
+
+.dark .sub-tab-btn {
+  background: #374151;
+  border-color: #4b5563;
+  color: #9ca3af;
+}
+
+.dark .sub-tab-btn:hover {
+  background: #4b5563;
+  color: #e2e8f0;
+  border-color: #6b7280;
+}
+
+.dark .sub-tab-btn.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #3b82f6;
+}
+
+.dark .sub-tab-btn:not(.active) .sub-tab-count {
+  background: #4b5563;
+  color: #9ca3af;
 }
 
 .dark .mobile-menu {
@@ -1482,5 +1776,54 @@ onUnmounted(() => {
 
 .dark .unlock-btn:hover:not(:disabled) {
   box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
+}
+
+/* 懒加载骨架屏样式 */
+.lazy-card-wrapper {
+  min-height: 88px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.site-card-skeleton {
+  pointer-events: none;
+}
+
+.skeleton-icon {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+.skeleton-line {
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeleton-name {
+  height: 16px;
+  width: 60%;
+  margin-bottom: 8px;
+}
+
+.skeleton-desc {
+  height: 14px;
+  width: 85%;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 暗色模式骨架屏 */
+.dark .skeleton-icon,
+.dark .skeleton-line {
+  background: linear-gradient(90deg, #4b5563 25%, #6b7280 50%, #4b5563 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
 }
 </style>

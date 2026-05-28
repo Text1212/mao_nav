@@ -30,3 +30,4 @@ coverage
 .dev.vars
 *.tsbuildinfo
 local_data.js
+.claude/
