@@ -376,7 +376,7 @@ const getSystemInfo = () => {
 const loadWebsiteSettings = async () => {
   try {
     const data = await loadCategoriesFromGitHub()
-    currentTitle.value = data.title || '猫猫导航'
+    currentTitle.value = data.title || '风向标导航'
     websiteTitle.value = currentTitle.value
 
     // 加载搜索引擎设置
@@ -384,8 +384,8 @@ const loadWebsiteSettings = async () => {
     searchEngine.value = currentSearchEngine.value
   } catch (error) {
     console.error('加载网站设置失败:', error)
-    currentTitle.value = '猫猫导航'
-    websiteTitle.value = '猫猫导航'
+    currentTitle.value = '风向标导航'
+    websiteTitle.value = '风向标导航'
     currentSearchEngine.value = 'bing'
     searchEngine.value = 'bing'
   }

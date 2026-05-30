@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { mockData } from '../mock/mock_data.js'
 
 export function useNavigation() {
@@ -7,6 +7,13 @@ export function useNavigation() {
   const defaultSearchEngine = ref('bing')
   const loading = ref(false)
   const error = ref(null)
+
+  // 短标题：取 " - " 前面的部分，用于侧边栏显示
+  const shortTitle = computed(() => {
+    const t = title.value || ''
+    const idx = t.indexOf(' - ')
+    return idx > 0 ? t.slice(0, idx) : t
+  })
 
   const fetchCategories = async () => {
     loading.value = true
@@ -58,6 +65,7 @@ export function useNavigation() {
   return {
     categories,
     title,
+    shortTitle,
     defaultSearchEngine,
     loading,
     error,

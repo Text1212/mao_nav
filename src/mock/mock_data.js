@@ -5764,6 +5764,6 @@ export const mockData = {
       ]
     }
   ],
-  "title": "风向标",
+  "title": "风向标 - 找到好站的方向",
   "search": "site"
 };

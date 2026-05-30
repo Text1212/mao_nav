@@ -3,8 +3,8 @@ import NavHomeView from '../views/NavHomeView.vue'
 import TestView from '../views/TestView.vue'
 
 const SITE_URL = import.meta.env.VITE_SITE_URL || 'https://mao-nav.pages.dev'
-const DEFAULT_TITLE = '猫猫导航 - 简洁美观的个人导航网站'
-const DEFAULT_DESCRIPTION = '猫猫导航是一个简洁美观的个人导航网站，收录优质视频、二次元、AI工具、开发资源等网站，支持分类管理和自定义收藏夹。'
+const DEFAULT_TITLE = '风向标 - 找到好站的方向'
+const DEFAULT_DESCRIPTION = '风向标是一个简洁美观的导航网站，收录优质视频、二次元、AI工具、开发资源等网站，支持分类管理和自定义收藏夹。'
 
 // SEO meta 配置
 const routeMeta = {
@@ -13,12 +13,12 @@ const routeMeta = {
     description: DEFAULT_DESCRIPTION,
   },
   admin: {
-    title: '管理后台 - 猫猫导航',
-    description: '猫猫导航后台管理系统，管理导航分类和站点资源。',
+    title: '管理后台 - 风向标导航',
+    description: '风向标导航后台管理系统，管理导航分类和站点资源。',
   },
   test: {
-    title: '环境变量测试 - 猫猫导航',
-    description: '猫猫导航环境变量配置测试页面。',
+    title: '环境变量测试 - 风向标导航',
+    description: '风向标导航环境变量配置测试页面。',
   },
 }
 
