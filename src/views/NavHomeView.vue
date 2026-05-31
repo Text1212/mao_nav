@@ -193,6 +193,10 @@
                     target="_blank"
                     rel="noopener noreferrer"
                     class="site-card"
+                    @mouseenter="handleCardEnter($event)"
+                    @mouseleave="handleCardLeave"
+                    @focus="handleCardEnter($event)"
+                    @blur="handleCardLeave"
                   >
                     <div class="site-icon">
                       <img :src="site.icon" :alt="site.name" loading="lazy" decoding="async" @error="handleImageError" />
@@ -207,32 +211,45 @@
             </Transition>
           </section>
 
-          <!-- 页面底部信息 -->
-          <footer class="page-footer" hidden="true">
-            <div class="footer-content">
-              <div class="footer-info">
-                <h3>{{ shortTitle || '风向标' }}</h3>
-                <p>一个简洁、美观的导航网站，收录优质网站资源</p>
-              </div>
+          <!-- 回到顶部按钮 -->
+      <Transition name="back-to-top">
+        <button
+          v-if="showBackToTop"
+          class="back-to-top-btn"
+          @click="scrollToTop"
+          aria-label="回到顶部"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="18 15 12 9 6 15"/>
+          </svg>
+          <span class="back-to-top-tip">回到顶部</span>
+        </button>
+      </Transition>
 
-              <div class="footer-links">
-                <a
-                  href="https://github.com/maodeyu180/mao_nav"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="footer-link"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
-                  </svg>
-                  开源项目
-                </a>
-              </div>
+      <!-- 完整描述浮层（fixed定位，不受overflow裁剪） -->
+      <Transition name="desc-tip">
+        <span
+          v-if="showDescTip.visible"
+          class="site-desc-tip"
+          :style="{ top: showDescTip.top + 'px', left: showDescTip.left + 'px' }"
+        >{{ showDescTip.text }}</span>
+      </Transition>
+
+      <!-- 页面底部信息 -->
+          <footer class="page-footer">
+            <div class="friend-links">
+              <span class="friend-links-label">友情链接：</span>
+              <a href="https://fengnav.xyz" target="_blank" rel="noopener noreferrer">风向标导航</a>
+              <span class="friend-link-sep">|</span>
+              <a href="https://www.google.com" target="_blank" rel="noopener noreferrer">Google</a>
+              <span class="friend-link-sep">|</span>
+              <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
             </div>
 
             <div class="footer-bottom">
-              <p>&copy; {{ new Date().getFullYear() }} 风向标导航 - 由 <a href="https://github.com/maodeyu180" target="_blank" rel="noopener noreferrer">maodeyu180</a> 用 ❤️ 制作</p>
-              <p class="footer-tech">基于 Vue.js 构建 | <a href="https://github.com/maodeyu180/mao_nav" target="_blank" rel="noopener noreferrer">查看源代码</a></p>
+              <span>&copy; {{ new Date().getFullYear() }} 风向标导航 · 参考 <a href="https://github.com/maodeyu180/mao_nav" target="_blank" rel="noopener noreferrer">mao_nav</a> 项目构建</span>
+              <span class="footer-sep">|</span>
+              <a href="https://beian.miit.gov.cn" target="_blank" rel="noopener noreferrer">ICP备案号</a>
             </div>
           </footer>
         </div>
@@ -262,6 +279,9 @@ const themeStore = useThemeStore()
 const searchQuery = ref('') // 搜索查询
 const selectedEngine = ref('site') // 选中搜索引擎，默认站内搜索
 const showMobileMenu = ref(false) // 移动端菜单显示状态
+const showBackToTop = ref(false) // 回到顶部按钮显示状态
+const hoverTimer = ref(null) // 卡片长按定时器
+const showDescTip = reactive({ visible: false, top: 0, left: 0, text: '' }) // 完整描述浮层状态
 const showEngineDropdown = ref(false) // 搜索引擎下拉菜单
 const engineSelectorRef = ref(null) // 搜索引擎选择器DOM引用
 const activeTabs = reactive({}) // 每个分类当前激活的tab: { categoryId: groupName }
@@ -504,6 +524,42 @@ const scrollToCategoryMobile = (categoryId) => {
   }, 200)
 }
 
+// 卡片hover 1s后展示完整描述
+const handleCardEnter = (event) => {
+  const card = event.currentTarget
+  const desc = card.querySelector('.site-description')
+  if (!desc || desc.scrollWidth <= desc.clientWidth) return // 没有截断则不展示
+  clearTimeout(hoverTimer.value)
+  hoverTimer.value = setTimeout(() => {
+    const rect = card.getBoundingClientRect()
+    showDescTip.visible = true
+    showDescTip.text = desc.textContent
+    showDescTip.top = rect.top - 8
+    showDescTip.left = rect.left
+  }, 1000)
+}
+
+const handleCardLeave = () => {
+  clearTimeout(hoverTimer.value)
+  showDescTip.visible = false
+}
+
+// 回到顶部 - 滚动监听
+const handleScroll = () => {
+  const container = document.querySelector('.content-area')
+  if (container) {
+    showBackToTop.value = container.scrollTop > 400
+  }
+}
+
+// 回到顶部 - 平滑滚动
+const scrollToTop = () => {
+  const container = document.querySelector('.content-area')
+  if (container) {
+    smoothScrollTo(container, 0, 500)
+  }
+}
+
 // 组件挂载时获取数据
 // 点击外部关闭搜索引擎下拉
 const handleClickOutside = (e) => {
@@ -518,6 +574,11 @@ onMounted(async () => {
   // 设置默认搜索引擎
   selectedEngine.value = defaultSearchEngine.value
   document.addEventListener('click', handleClickOutside)
+  // 监听滚动，控制回到顶部按钮
+  const contentArea = document.querySelector('.content-area')
+  if (contentArea) {
+    contentArea.addEventListener('scroll', handleScroll)
+  }
 })
 
 // 组件卸载时清理样式
@@ -525,6 +586,11 @@ onUnmounted(() => {
   // 确保卸载时恢复body滚动
   document.body.style.overflow = ''
   document.removeEventListener('click', handleClickOutside)
+  clearTimeout(hoverTimer.value)
+  const contentArea = document.querySelector('.content-area')
+  if (contentArea) {
+    contentArea.removeEventListener('scroll', handleScroll)
+  }
 })
 </script>
 
@@ -992,7 +1058,7 @@ onUnmounted(() => {
   margin: 0;
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 160px; /* 增加底部内边距确保最后一项完全可见 */
+  padding-bottom: 80px;
 }
 
 .mobile-category-item {
@@ -1046,7 +1112,7 @@ onUnmounted(() => {
 .content-area {
   flex: 1;
   padding: 30px;
-  padding-bottom: 400px;
+  padding-bottom: 40px;
   overflow-y: auto;
 }
 
@@ -1219,7 +1285,6 @@ onUnmounted(() => {
   transition: all 0.3s ease;
   border: 1px solid #e9ecef;
   position: relative;
-  overflow: hidden;
 }
 
 .site-card::before {
@@ -1232,6 +1297,7 @@ onUnmounted(() => {
   background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(155, 89, 182, 0.1));
   opacity: 0;
   transition: opacity 0.3s ease;
+  border-radius: 12px;
 }
 
 .site-card:hover {
@@ -1244,11 +1310,11 @@ onUnmounted(() => {
 }
 
 .site-icon {
-  width: 48px;
-  height: 48px;
-  min-width: 48px;
+  width: 38px;
+  height: 38px;
+  min-width: 38px;
   flex-shrink: 0;
-  margin-right: 16px;
+  margin-right: 14px;
   border-radius: 8px;
   overflow: hidden;
   background: #f8f9fa;
@@ -1260,8 +1326,8 @@ onUnmounted(() => {
 }
 
 .site-icon img {
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   object-fit: contain;
 }
 
@@ -1274,9 +1340,9 @@ onUnmounted(() => {
 }
 
 .site-name {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
-  margin: 0 0 5px 0;
+  margin: 0 0 4px 0;
   color: #2c3e50;
   white-space: nowrap;
   overflow: hidden;
@@ -1284,112 +1350,118 @@ onUnmounted(() => {
 }
 
 .site-description {
-  font-size: 14px;
+  font-size: 12px;
   color: #7f8c8d;
   margin: 0;
   line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+}
+
+/* 完整描述提示浮层 */
+.site-desc-tip {
+  position: fixed;
+  max-width: 280px;
+  background: rgba(44, 62, 80, 0.92);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 12px;
+  border-radius: 6px;
+  white-space: normal;
+  word-break: break-all;
+  z-index: 500;
+  pointer-events: none;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  transform: translateY(-100%);
+}
+
+.site-desc-tip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 20px;
+  border: 5px solid transparent;
+  border-top-color: rgba(44, 62, 80, 0.92);
+}
+
+/* desc-tip 过渡 */
+.desc-tip-enter-active,
+.desc-tip-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.desc-tip-enter-from,
+.desc-tip-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+/* 暗色模式 */
+.dark .site-desc-tip {
+  background: rgba(30, 41, 59, 0.95);
+}
+
+.dark .site-desc-tip::after {
+  border-top-color: rgba(30, 41, 59, 0.95);
 }
 
 /* 页面底部 */
 .page-footer {
-  margin-top: 60px;
-  padding: 40px 0;
+  margin-top: 40px;
+  padding: 20px 24px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 12px;
-  border-top: 3px solid #3498db;
-}
-
-.footer-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 30px;
-  gap: 30px;
-}
-
-.footer-info h3 {
-  color: #2c3e50;
-  font-size: 20px;
-  font-weight: 600;
-  margin: 0 0 8px 0;
-}
-
-.footer-info p {
-  color: #7f8c8d;
-  font-size: 14px;
-  margin: 0;
-  line-height: 1.5;
-}
-
-.footer-links {
-  display: flex;
-  gap: 15px;
-}
-
-.footer-link {
-  display: flex;
-  align-items: center;
-  color: #3498db;
-  text-decoration: none;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: white;
-  border: 1px solid #e9ecef;
-  transition: all 0.3s ease;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.footer-link:hover {
-  background: #3498db;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
-}
-
-.footer-link svg {
-  margin-right: 6px;
-  transition: transform 0.3s ease;
-}
-
-.footer-link:hover svg {
-  transform: scale(1.1);
-}
-
-.footer-bottom {
-  border-top: 1px solid #e9ecef;
-  padding-top: 20px;
+  border-top: 2px solid #3498db;
   text-align: center;
 }
 
-.footer-bottom p {
-  color: #7f8c8d;
+/* 友情链接 */
+.friend-links {
   font-size: 13px;
-  margin: 5px 0;
-  line-height: 1.4;
+  color: #7f8c8d;
+  margin-bottom: 6px;
+}
+
+.friend-links-label {
+  color: #95a5a6;
+}
+
+.friend-links a {
+  color: #7f8c8d;
+  text-decoration: none;
+  padding: 0 4px;
+  transition: color 0.2s ease;
+}
+
+.friend-links a:hover {
+  color: #3498db;
+}
+
+.friend-link-sep {
+  color: #d1d5db;
+}
+
+/* 底部信息行 */
+.footer-bottom {
+  font-size: 12px;
+  color: #95a5a6;
 }
 
 .footer-bottom a {
-  color: #3498db;
+  color: #95a5a6;
   text-decoration: none;
-  font-weight: 500;
-  transition: color 0.3s ease;
+  transition: color 0.2s ease;
 }
 
 .footer-bottom a:hover {
-  color: #2980b9;
-  text-decoration: underline;
+  color: #3498db;
 }
 
-.footer-tech {
-  font-size: 12px !important;
-  opacity: 0.8;
+.footer-sep {
+  color: #d1d5db;
+  margin: 0 6px;
 }
 
 /* 响应式设计 */
@@ -1430,7 +1502,7 @@ onUnmounted(() => {
     flex: 1;
     padding: 20px 15px;
     padding-top: 100px; /* 为固定的搜索框留出空间 */
-    padding-bottom: 300px; /* 增加底部padding确保内容可以完全滚动 */
+    padding-bottom: 30px;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch; /* iOS平滑滚动 */
   }
@@ -1462,14 +1534,14 @@ onUnmounted(() => {
   }
 
   .site-card .site-name {
-    font-size: 14px;
+    font-size: 13px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
   .site-card .site-description {
-    font-size: 12px;
+    font-size: 11px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -1491,26 +1563,8 @@ onUnmounted(() => {
 
   /* 移动端页面底部 */
   .page-footer {
-    margin-top: 40px;
-    padding: 30px 20px;
-  }
-
-  .footer-content {
-    flex-direction: column;
-    gap: 20px;
-    text-align: center;
-  }
-
-  .footer-links {
-    justify-content: center;
-  }
-
-  .footer-bottom {
-    padding-top: 15px;
-  }
-
-  .footer-bottom p {
-    font-size: 12px;
+    margin-top: 30px;
+    padding: 16px 16px;
   }
 }
 
@@ -1687,39 +1741,39 @@ onUnmounted(() => {
 
 .dark .page-footer {
   background: linear-gradient(135deg, #1e293b 0%, #374151 100%);
-  border-top: 3px solid #3b82f6;
+  border-top: 2px solid #3b82f6;
 }
 
-.dark .footer-info h3 {
-  color: #e2e8f0;
-}
-
-.dark .footer-info p {
+.dark .friend-links {
   color: #9ca3af;
 }
 
-.dark .footer-link {
-  background: #374151;
-  border: 1px solid #4b5563;
-  color: #3b82f6;
-}
-
-.dark .footer-link:hover {
-  background: #3b82f6;
-  color: white;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
-}
-
-.dark .footer-bottom p {
+.dark .friend-links a {
   color: #9ca3af;
+}
+
+.dark .friend-links a:hover {
+  color: #60a5fa;
+}
+
+.dark .friend-link-sep {
+  color: #4b5563;
+}
+
+.dark .footer-bottom {
+  color: #6b7280;
 }
 
 .dark .footer-bottom a {
-  color: #3b82f6;
+  color: #6b7280;
 }
 
 .dark .footer-bottom a:hover {
   color: #60a5fa;
+}
+
+.dark .footer-sep {
+  color: #4b5563;
 }
 
 .dark .loading,
@@ -1781,7 +1835,6 @@ onUnmounted(() => {
 .lazy-card-wrapper {
   min-height: 88px;
   min-width: 0;
-  overflow: hidden;
 }
 
 .site-card-skeleton {
@@ -1824,5 +1877,91 @@ onUnmounted(() => {
   background: linear-gradient(90deg, #4b5563 25%, #6b7280 50%, #4b5563 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
+}
+
+/* 回到顶部按钮 */
+.back-to-top-btn {
+  position: fixed;
+  bottom: 80px;
+  right: 30px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.75) 0%, rgba(118, 75, 162, 0.75) 100%);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
+  z-index: 300;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.back-to-top-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+  background: linear-gradient(135deg, rgba(102, 126, 234, 0.9) 0%, rgba(118, 75, 162, 0.9) 100%);
+}
+
+.back-to-top-btn:active {
+  transform: translateY(-1px) scale(0.95);
+}
+
+/* hover 提示文字 */
+.back-to-top-tip {
+  position: absolute;
+  right: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(44, 62, 80, 0.85);
+  color: #fff;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.back-to-top-tip::after {
+  content: '';
+  position: absolute;
+  left: 100%;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 5px solid transparent;
+  border-left-color: rgba(44, 62, 80, 0.85);
+}
+
+.back-to-top-btn:hover .back-to-top-tip {
+  opacity: 1;
+}
+
+/* back-to-top 过渡动画 */
+.back-to-top-enter-active,
+.back-to-top-leave-active {
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.back-to-top-enter-from,
+.back-to-top-leave-to {
+  opacity: 0;
+  transform: translateY(12px) scale(0.75);
+}
+
+/* 暗色模式 */
+.dark .back-to-top-btn {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.65) 0%, rgba(139, 92, 246, 0.65) 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+}
+
+.dark .back-to-top-btn:hover {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.85) 0%, rgba(139, 92, 246, 0.85) 100%);
+  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.35);
 }
 </style>
