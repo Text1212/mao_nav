@@ -235,17 +235,25 @@
         >{{ showDescTip.text }}</span>
       </Transition>
 
+      <!-- 友情链接 -->
+          <section class="friend-links-section">
+            <div class="category-header">
+              <h2 class="category-title friend-links-title">
+                <span class="category-icon">🔗</span>
+                <span class="category-name">友情链接</span>
+              </h2>
+            </div>
+            <div class="friend-links-grid">
+              <span
+                v-for="link in friendLinks"
+                :key="link.url"
+                class="friend-link-item"
+              ><a :href="link.url" target="_blank" rel="noopener noreferrer">{{ link.name }}</a></span>
+            </div>
+          </section>
+
       <!-- 页面底部信息 -->
           <footer class="page-footer">
-            <div class="friend-links">
-              <span class="friend-links-label">友情链接：</span>
-              <a href="https://fengnav.xyz" target="_blank" rel="noopener noreferrer">风向标导航</a>
-              <span class="friend-link-sep">|</span>
-              <a href="https://www.google.com" target="_blank" rel="noopener noreferrer">Google</a>
-              <span class="friend-link-sep">|</span>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer">GitHub</a>
-            </div>
-
             <div class="footer-bottom">
               <span>&copy; {{ new Date().getFullYear() }} 风向标导航 · 参考 <a href="https://github.com/maodeyu180/mao_nav" target="_blank" rel="noopener noreferrer">mao_nav</a> 项目构建</span>
               <span class="footer-sep">|</span>
@@ -282,6 +290,13 @@ const showMobileMenu = ref(false) // 移动端菜单显示状态
 const showBackToTop = ref(false) // 回到顶部按钮显示状态
 const hoverTimer = ref(null) // 卡片长按定时器
 const showDescTip = reactive({ visible: false, top: 0, left: 0, text: '' }) // 完整描述浮层状态
+
+// 友情链接数据
+const friendLinks = ref([
+  { name: '风向标导航', url: 'https://fengnav.xyz' },
+  { name: 'Google', url: 'https://www.google.com' },
+  { name: 'GitHub', url: 'https://github.com' },
+])
 const showEngineDropdown = ref(false) // 搜索引擎下拉菜单
 const engineSelectorRef = ref(null) // 搜索引擎选择器DOM引用
 const activeTabs = reactive({}) // 每个分类当前激活的tab: { categoryId: groupName }
@@ -1407,40 +1422,69 @@ onUnmounted(() => {
   border-top-color: rgba(30, 41, 59, 0.95);
 }
 
+/* 友情链接区块 */
+.friend-links-section {
+  margin-bottom: 30px;
+}
+
+.friend-links-section .category-header {
+  margin-bottom: 2px;
+}
+
+.friend-links-title {
+  font-size: 22px !important;
+  margin: 0 !important;
+}
+
+.friend-links-title .category-icon {
+  font-size: 20px !important;
+}
+
+.friend-links-title .category-name {
+  font-size: 16px !important;
+}
+
+.friend-links-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+
+.friend-link-item {
+  font-size: 13px;
+  color: #666;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.friend-link-item::before {
+  content: '·';
+  color: #bbb;
+  font-weight: bold;
+}
+
+.friend-link-item a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.friend-link-item a:hover {
+  color: #3498db;
+}
+
 /* 页面底部 */
 .page-footer {
-  margin-top: 40px;
-  padding: 20px 24px;
+  margin-top: 20px;
+  padding: 18px 24px;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
   border-radius: 12px;
   border-top: 2px solid #3498db;
   text-align: center;
-}
-
-/* 友情链接 */
-.friend-links {
-  font-size: 13px;
-  color: #7f8c8d;
-  margin-bottom: 6px;
-}
-
-.friend-links-label {
-  color: #95a5a6;
-}
-
-.friend-links a {
-  color: #7f8c8d;
-  text-decoration: none;
-  padding: 0 4px;
-  transition: color 0.2s ease;
-}
-
-.friend-links a:hover {
-  color: #3498db;
-}
-
-.friend-link-sep {
-  color: #d1d5db;
 }
 
 /* 底部信息行 */
@@ -1561,9 +1605,23 @@ onUnmounted(() => {
     font-size: 22px;
   }
 
+  /* 移动端友情链接 */
+  .friend-links-section {
+    margin-bottom: 24px;
+  }
+
+  .friend-links-grid {
+    gap: 2px 12px;
+    padding: 12px 14px;
+  }
+
+  .friend-link-item {
+    font-size: 12px;
+  }
+
   /* 移动端页面底部 */
   .page-footer {
-    margin-top: 30px;
+    margin-top: 20px;
     padding: 16px 16px;
   }
 }
@@ -1744,20 +1802,20 @@ onUnmounted(() => {
   border-top: 2px solid #3b82f6;
 }
 
-.dark .friend-links {
+.dark .friend-links-grid {
+  background: #1e293b;
+}
+
+.dark .friend-link-item {
   color: #9ca3af;
 }
 
-.dark .friend-links a {
-  color: #9ca3af;
+.dark .friend-link-item::before {
+  color: #6b7280;
 }
 
-.dark .friend-links a:hover {
+.dark .friend-link-item a:hover {
   color: #60a5fa;
-}
-
-.dark .friend-link-sep {
-  color: #4b5563;
 }
 
 .dark .footer-bottom {
