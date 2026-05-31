@@ -506,10 +506,22 @@ const handleSearch = () => {
   window.open(url, '_blank')
 }
 
-// 处理图片加载错误
+// 处理图片加载错误：先回退到网站自身favicon，再不行用本地默认图标
 const handleImageError = (event) => {
-  event.target.src = '/favicon.ico'
-  event.target.onerror = null
+  const img = event.target
+  // 如果还没回退过，尝试网站自身 favicon.ico
+  if (!img.dataset.fallback) {
+    const card = img.closest('.site-card')
+    if (card) {
+      const domain = new URL(card.href).hostname
+      img.src = `https://${domain}/favicon.ico`
+      img.dataset.fallback = '1'
+      return
+    }
+  }
+  // 兜底：本地默认图标
+  img.src = '/favicon.ico'
+  img.onerror = null
 }
 
 // 移动端菜单控制
@@ -1330,9 +1342,6 @@ onUnmounted(() => {
   min-width: 38px;
   flex-shrink: 0;
   margin-right: 14px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #f8f9fa;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1747,10 +1756,6 @@ onUnmounted(() => {
 
 .dark .site-description {
   color: #9ca3af;
-}
-
-.dark .site-icon {
-  background: #4b5563;
 }
 
 .dark .category-title {

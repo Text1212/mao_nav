@@ -1,6 +1,7 @@
 import { fileURLToPath, URL } from 'node:url'
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
+import crypto from 'crypto'
 
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -38,11 +39,58 @@ function siteUrlPlugin() {
 }
 
 // https://vite.dev/config/
+// 本地开发 API 中间件（读取 .dev.vars 模拟服务端函数）
+function localApiPlugin() {
+  const loadEnv = () => {
+    const vars = {}
+    const varsPath = resolve(__dirname, '.dev.vars')
+    if (existsSync(varsPath)) {
+      readFileSync(varsPath, 'utf-8').split('\n').forEach(line => {
+        const idx = line.indexOf('=')
+        if (idx > 0) vars[line.slice(0, idx).trim()] = line.slice(idx + 1).trim()
+      })
+    }
+    return vars
+  }
+
+  return {
+    name: 'local-api',
+    configureServer(server) {
+      server.middlewares.use('/api/verify', (req, res) => {
+        if (req.method === 'OPTIONS') {
+          res.writeHead(200, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'POST', 'Access-Control-Allow-Headers': 'Content-Type' })
+          return res.end()
+        }
+        if (req.method !== 'POST') {
+          res.writeHead(405)
+          return res.end(JSON.stringify({ success: false, error: 'Method not allowed' }))
+        }
+        let body = ''
+        req.on('data', c => body += c)
+        req.on('end', () => {
+          const { password } = JSON.parse(body || '{}')
+          const adminPassword = loadEnv().ADMIN_PASSWORD
+          res.setHeader('Content-Type', 'application/json')
+          if (!adminPassword) {
+            return res.end(JSON.stringify({ success: false, error: '服务端未配置管理员密钥' }))
+          }
+          if (!password || password !== adminPassword) {
+            return res.end(JSON.stringify({ success: false, error: '密钥错误，请重新输入' }))
+          }
+          const token = crypto.createHash('sha256').update(adminPassword + ':mao-nav-auth').digest('hex')
+          res.end(JSON.stringify({ success: true, token }))
+        })
+      })
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
     siteUrlPlugin(),
+    localApiPlugin(),
   ],
   resolve: {
     alias: {
